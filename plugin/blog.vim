@@ -444,7 +444,7 @@ class ContentStruct(object):
 
     def fill_buffer(self):
         meta = dict(strid="", title="", slug="",
-                cats="", tags="", editformat="Markdown", edittype="")
+                cats="", tags="", editformat="HTML", edittype="")
         meta.update(self.buffer_meta)
         meta_text = self.META_TEMPLATE.format(**meta)\
                 .encode('utf-8').splitlines()
