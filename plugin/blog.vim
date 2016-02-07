@@ -453,15 +453,15 @@ class ContentStruct(object):
 
         for meta_key in meta:
             if meta_key.startswith("blogaddr"):
-                for config_index, config_section in enumerate(config):
+                for config_section in config:
                     if meta[meta_key] == config_section["blog_url"] and \
                         meta[meta_key] != g_data.blog_url:
-                        remote_addr = "post_at_blogaddr" + str(config_index)
+                        remote_addr = "post_at_" + config_section["blog_url"]
                         for field in custom_fields:
                             if field["key"] == remote_addr:
                                 break
                         else:
-                            custom_fields.append(dict(key="post_at_blogaddr" + str(config_index), value=0))
+                            custom_fields.append(dict(key=remote_addr, value=0))
                         break
 
     def fill_buffer(self):
@@ -592,14 +592,21 @@ class ContentStruct(object):
         config = g_data.config
         custom_fields = struct["custom_fields"]
         old_config_index = g_data.conf_index
-        struct["custom_fields"] = [fd for fd in custom_fields if not fd["key"].startswith("post_at_blogaddr")]
+        struct["custom_fields"] = [fd for fd in custom_fields if not fd["key"].startswith("post_at_")]
         for field in custom_fields:
-            if field["key"].startswith("post_at_blogaddr"):
-                config_index = int(field["key"][-1])
-                if config_index < len(config) and \
+            if field["key"].startswith("post_at_"):
+                blog_url = field["key"][8:]
+
+                config_index = -1
+                for i, c in enumerate(config):
+                    if c["blog_url"] == blog_url:
+                        config_index = i
+                        break;
+
+                if config_index > 0 and \
                     config_index != old_config_index:
                     g_data.conf_index = config_index
-                    echomsg("Synchroizing to '%s'@'%s'" % (g_data.blog_username, g_data.blog_url))
+                    echomsg("Synchronizing to '%s'@'%s'" % (g_data.blog_username, g_data.blog_url))
                     post_id = field["value"]
                     if post_id > 0:
                         try:
