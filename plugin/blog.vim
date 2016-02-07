@@ -958,11 +958,11 @@ def blog_guess_open(what):
     post_id = ''
     blog_index = -1
     if type(what) is str:
-
+        """
         for i, p in enumerate(vim.eval("VIMPRESS")):
             if what.startswith(p["blog_url"]):
                 blog_index = i
-
+        """
         # User input a url contained in the profiles
         if blog_index != -1:
             guess_id = re.search(r"\S+?p=(\d+)$", what)
