@@ -626,7 +626,8 @@ def vim_encoding_check(func):
             buf_list = '\n'.join(vim.current.buffer).decode(orig_enc).encode('utf-8').splitlines()
             del vim.current.buffer[:]
             vim.command("setl encoding=utf-8")
-            vim.current.buffer[0] = buf_list[0]
+	    if len(buf_list) > 0:
+                vim.current.buffer[0] = buf_list[0]
             if len(buf_list) > 1:
                 vim.current.buffer.append(buf_list[1:])
             if modified == '0':
@@ -679,7 +680,8 @@ def blog_wise_open_view():
     """
     Wisely decides whether to wipe out the content of current buffer or open a new splited window.
     """
-    if vim.current.buffer.name is None and \
+    if (vim.current.buffer.name is None or
+        vim.current.buffer.name == "") and \
             (vim.eval('&modified') == '0' or
                 len(vim.current.buffer) == 1):
         vim.command('setl modifiable')
@@ -767,9 +769,6 @@ def blog_edit(edit_type, post_id):
     vim.current.window.cursor = (cp.POST_BEGIN, 0)
     vim.command('setl nomodified')
     vim.command('setl textwidth=0')
-    for v in G.LIST_VIEW_KEY_MAP.values():
-        if vim.eval("mapcheck('%s')" % v):
-            vim.command('unmap <buffer> %s' % v)
 
 
 @view_switch(assert_view = "list")
@@ -864,7 +863,7 @@ def blog_list(edit_type = "post", keep_type = False):
 
     blog_wise_open_view()
     vim.current.buffer[0] = G.MARKER["list_title"] % \
-                                dict(edit_type = edit_type.capitalize(), blog_url = G.blog_url)
+                                dict(edit_type = edit_type.capitalize(), blog_url = g_data.blog_url)
 
     if edit_type.lower() not in ("post", "page"):
         raise VimPressException("Invalid option: %s " % edit_type)
