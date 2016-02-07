@@ -442,6 +442,27 @@ class ContentStruct(object):
         self.buffer_meta["content"] = '\n'.join(
                 vim.current.buffer[end + 1:]).decode('utf-8')
 
+        self.parse_blog_addr()
+
+    def parse_blog_addr(self):
+        meta = self.buffer_meta
+        struct = self.post_struct_meta
+        config = g_data.config
+        custom_fields = struct["custom_fields"]
+
+        for meta_key in meta:
+            if meta_key.startswith("blogaddr"):
+                for config_index, config_section in enumerate(config):
+                    if meta[meta_key] == config_section["blog_url"] and \
+                        meta[meta_key] != g_data.blog_url:
+                        remote_addr = "post_at_blogaddr" + str(config_index)
+                        for field in custom_fields:
+                            if field["key"] == remote_addr:
+                                break
+                        else:
+                            custom_fields.append(dict(key="post_at_blogaddr" + str(config_index), value=0))
+                        break
+
     def fill_buffer(self):
         meta = dict(strid="", title="", slug="",
                 cats="", tags="", editformat="HTML", edittype="")
@@ -546,6 +567,7 @@ class ContentStruct(object):
         self.buffer_meta.update(meta)
 
     def save_post(self):
+        echomsg("Saving to '%s'@'%s'" % (g_data.blog_username, g_data.blog_url))
         ps = self.post_struct_meta
         if self.EDIT_TYPE == "post":
             if ps.get("postid", '') == '' and self.post_id == '':
@@ -564,6 +586,32 @@ class ContentStruct(object):
 
         self.refresh_from_wp(post_id)
 
+    def sync_post(self):
+        struct = self.post_struct_meta
+        config = g_data.config
+        custom_fields = struct["custom_fields"]
+        old_config_index = g_data.conf_index
+        struct["custom_fields"] = [fd for fd in custom_fields if not fd["key"].startswith("post_at_blogaddr")]
+        for field in custom_fields:
+            if field["key"].startswith("post_at_blogaddr"):
+                config_index = int(field["key"][-1])
+                if config_index < len(config) and \
+                    config_index != old_config_index:
+                    g_data.conf_index = config_index
+                    echomsg("Synchroizing to '%s'@'%s'" % (g_data.blog_username, g_data.blog_url))
+                    post_id = field["value"]
+                    if post_id > 0:
+                        try:
+                            g_data.xmlrpc.edit_post(post_id, struct)
+                        except Exception, e:
+                            post_id = g_data.xmlrpc.new_post(struct)
+                    else:
+                        post_id = g_data.xmlrpc.new_post(struct)
+                    field["value"] = post_id
+
+        g_data.conf_index = old_config_index
+        struct["custom_fields"] = custom_fields
+ 
     post_status = property(lambda self:
             self.post_struct_meta[self.EDIT_TYPE + "_status"])
 
@@ -724,6 +772,7 @@ def blog_save(pub = None):
         assert confirm.lower() == 'yes', "Aborted."
 
     cp.post_status = pub
+    cp.sync_post()
     cp.save_post()
     cp.update_buffer_meta()
     g_data.current_post = cp
