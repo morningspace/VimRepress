@@ -77,6 +77,7 @@ command! -nargs=1 -complete=file BlogUpload exec('py blog_upload_media(<f-args>)
 command! -nargs=1 BlogOpen exec('py blog_guess_open(<f-args>)')
 command! -nargs=? BlogSwitch exec('py blog_config_switch(<f-args>)')
 command! -nargs=? BlogCode exec('py blog_append_code(<f-args>)')
+command! -nargs=? BlogMeta exec('py blog_meta(<f-args>)')
 
 python << EOF
 # -*- coding: utf-8 -*-
@@ -780,6 +781,20 @@ def blog_save(pub = None):
     echomsg(notify)
     vim.command('setl nomodified')
 
+@exception_check
+@view_switch(assert_view = "edit", reset = True)
+def blog_meta(what = None):
+    if what == None:
+        assert hasattr(g_data, "current_post"), "Can't get current post obj."
+        cp = g_data.current_post
+        cp.refresh_from_buffer()
+        custom_fields = cp.post_struct_meta["custom_fields"]
+        print "custom_fields : "
+        for f in custom_fields:
+            id = f["id"] if "id" in f else None
+            print "    id = %s, key = %s, value = %s" % (id, f["key"], f["value"])
+    elif what == "blog_url":
+        print "blog_url : %s" % g_data.blog_url
 
 @exception_check
 @vim_encoding_check
